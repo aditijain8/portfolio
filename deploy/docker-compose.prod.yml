@@ -1,0 +1,63 @@
+# Always-on single-VM deployment (e.g. Oracle Cloud Always Free VM or any paid VPS).
+# UNTESTED in this repository's verification run: review before using.
+#   cp ../.env.example .env && edit        # real secrets, COOKIE_SECURE=true, API_DOCS_ENABLED=false
+#   DOMAIN=portfolio.example.com docker compose -f docker-compose.prod.yml up -d --build
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: portfolio
+      POSTGRES_USER: portfolio
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U portfolio -d portfolio"]
+      interval: 10s
+      retries: 10
+
+  backend:
+    build: ../backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/portfolio
+      DB_USERNAME: portfolio
+      DB_PASSWORD: ${DB_PASSWORD}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_RESET: ${ADMIN_RESET:-false}
+      APP_PUBLIC_URL: https://${DOMAIN:?Set DOMAIN}
+      COOKIE_SECURE: "true"
+      API_DOCS_ENABLED: "false"
+      STORAGE_TYPE: ${STORAGE_TYPE:-database}
+    volumes:
+      - uploads:/app/data
+
+  frontend:
+    build: ../frontend
+    restart: unless-stopped
+    environment:
+      BACKEND_URL: http://backend:8080
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - frontend
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+
+volumes:
+  pgdata:
+  uploads:
+  caddy_data:

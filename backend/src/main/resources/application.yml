@@ -1,0 +1,81 @@
+spring:
+  application:
+    name: portfolio-api
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/portfolio}
+    username: ${DB_USERNAME:portfolio}
+    password: ${DB_PASSWORD:}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none   # schema is owned by Flyway migrations only
+  flyway:
+    enabled: true
+  servlet:
+    multipart:
+      max-file-size: 6MB
+      max-request-size: 7MB
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+
+server:
+  port: ${PORT:8080}
+  forward-headers-strategy: native
+  servlet:
+    session:
+      timeout: ${SESSION_TIMEOUT:60m}
+      cookie:
+        http-only: true
+        secure: ${COOKIE_SECURE:false}   # MUST be true in production (HTTPS)
+        same-site: lax
+        name: PORTFOLIO_SESSION
+  error:
+    include-message: never
+    include-stacktrace: never
+
+management:
+  health:
+    mail:
+      enabled: false
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true   # /actuator/health/liveness does not touch the database (safe for keep-alive pings)
+
+springdoc:
+  api-docs:
+    enabled: ${API_DOCS_ENABLED:false}
+  swagger-ui:
+    enabled: ${API_DOCS_ENABLED:false}
+
+app:
+  public-url: ${APP_PUBLIC_URL:http://localhost:5173}
+  cors:
+    # Empty = same-origin only (recommended: proxy /api through the frontend host).
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:}
+  storage:
+    type: ${STORAGE_TYPE:database}      # database | local
+    local-dir: ${STORAGE_LOCAL_DIR:./data/files}
+  admin:
+    # One-time bootstrap. Only used when no administrator exists (or reset=true). Never commit real values.
+    email: ${ADMIN_EMAIL:}
+    password: ${ADMIN_PASSWORD:}
+    reset: ${ADMIN_RESET:false}
+  login:
+    max-failures: ${LOGIN_MAX_FAILURES:5}
+    window-minutes: ${LOGIN_WINDOW_MINUTES:15}
+  contact:
+    enabled: ${CONTACT_ENABLED:true}
+    notify-email: ${CONTACT_NOTIFY_EMAIL:}   # optional; needs MAIL_* configured
+    from-email: ${CONTACT_FROM_EMAIL:}
